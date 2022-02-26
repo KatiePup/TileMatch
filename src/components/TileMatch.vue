@@ -3,11 +3,10 @@
 </template>
 
 <script>
-// import IPFS from 'ipfs'
-import { create } from 'ipfs-http-client'
-import {OrbitDB }from 'orbit-db'
+import { OrbitDB } from 'orbit-db'
 
 import { v4 as uuidv4 } from 'uuid'
+import { setupIpfsClient } from '../data'
 
 // main()
 export default {
@@ -36,16 +35,17 @@ export default {
   },
   mounted: function () {
     // Setup IPFS and orbitdb
-    console.log("Setting Up IPFS and orbitDB")
-    const ipfsOptions = { repo: './ipfs' }
-    this.ipfs = new create(ipfsOptions)
+    console.log('Setting Up IPFS and orbitDB')
+
+    this.ipfs = setupIpfsClient()
     this.ipfs.on('ready', async () => {
       this.orbitdb = new OrbitDB(this.ipfs)
       this.db = await this.orbitdb.eventlog('TileMatch')
       this.ipfsdbREADY = true
+      console.log('Setup Complete')
       this.collectMessagesOnTimer()
     })
-    console.log("Setup Complete")
+    
   },
   created: function () {
     this.findGame()
