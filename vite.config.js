@@ -12,12 +12,8 @@ export default defineConfig({
   // },
   optimizeDeps: {
     exclude: [
-      // "url",
-      // "http",
-      // "stream",
-      // "ipfs",
-
-      "ipfs-http-client"
+      "electron-fetch",
+      "ipfs-http-client",
     ],
   },
 });
