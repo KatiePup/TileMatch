@@ -64,7 +64,6 @@ export default {
 
   mounted() {
     console.log(this.ipfs)
-
   },
 
   methods: {
@@ -96,16 +95,17 @@ export default {
       }
       timerFunc()
     },
-    sendMessage: function (message) {
+    async sendMessage(message) {
+      if (!message) {
+        return
+      }
+
       // Send message to orbitdb
-      if (this.ipfsdbREADY === true) {
-        const asyncCall = async () => {
-          return await this.db.add(message)
-        }
-        asyncCall()
-      } else {
-        // If databse isnt ready
-        console.log('Waiting ipfs db')
+      if (this.ipfsdbREADY === true && this.db) {
+        const db = this.db
+        console.log('Sending Message:', message, db)
+
+        return await this.db.add({ ...message })
       }
     },
     findGame: function () {
@@ -113,7 +113,7 @@ export default {
       // Blank array to cache accepted gameIDs
       let alreadyAccepted = []
       // Loop through each db message
-      this.dbCache.forEach((message) => {
+      this.dbCache?.forEach((message) => {
         // TODO check if the entry is too old
 
         if (message.moveID === 'request') {
