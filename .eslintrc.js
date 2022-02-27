@@ -14,10 +14,4 @@ module.exports = {
     'no-unused-vars': 'warn',
     'spaced-comment': 'warn',
   },
-  parser: 'vue-eslint-parser',
-  // parserOptions: {
-  //   parser: '@typescript-eslint/parser',
-  //   ecmaVersion: 2020,
-  //   sourceType: 'module'
-  // }
 }
