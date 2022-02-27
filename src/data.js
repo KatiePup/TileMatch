@@ -7,13 +7,20 @@
 // import { create } from 'ipfs-core'
 
 export async function setupIpfsClient() {
-    const options = { repo: './ipfs' }
+    const options = {
+        EXPERIMENTAL: { pubsub: true },
+        relay: { enabled: true, hop: { enabled: true, active: true } },
+        repo: './ipfs'
+    }
+    // await NPP.node.bootstrap.list()
 
     const pending = IpfsCore.create(options)
     // const pending =  window.IpfsHttpClientLite(options)
 
     pending.then(async (client) => {
-        console.log("Connected to IPFS");
+        console.log("Connected to IPFS", { client });
+        console.log(await client.bootstrap.list())
+
 
         // Returns the identity of the Peer.
         const { agentVersion, id } = await client.id();
@@ -27,4 +34,8 @@ export async function setupIpfsClient() {
     })
 
     return pending
+}
+
+export function getDatabaseName(params) {
+    return window.location?.hash?.substring(1)  ?? 'TileMatch'
 }

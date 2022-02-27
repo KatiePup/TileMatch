@@ -6,7 +6,7 @@
 import OrbitDB from 'orbit-db'
 
 import { v4 as uuidv4 } from 'uuid'
-import { setupIpfsClient } from '../data'
+import { setupIpfsClient, getDatabaseName } from '../data'
 
 // main()
 export default {
@@ -40,30 +40,33 @@ export default {
 
   async created() {
     //
-    console.log('Setting up IPFS network...')
+    console.log('Setting up IPFS network...', getDatabaseName())
 
     this.ipfs = setupIpfsClient()
 
     // Wait for client to be available.
     const client = await this.ipfs
-    console.log(client)
-
-    // client.on('ready', () => {
     this.ipfsdbREADY = true
-
-    // })
 
     //
     console.log('Loading database...')
 
     this.orbitdb = OrbitDB.createInstance(client)
-    this.db = (await this.orbitdb).eventlog('TileMatch')
+    this.db = (await this.orbitdb).eventlog(getDatabaseName())
 
-    const { orbitdb, db } = this
+    //
+    const db = await this.db
 
-    console.log(await orbitdb, await db)
 
-    console.log('Setup Complete')
+    // Set url...
+    window.location.hash = db.address.toString()
+
+    db.events.on('replicated', () => {
+      console('replicated!')
+      this.fetchMessages()
+    })
+
+    console.log('Setup Complete', db)
     await this.collectMessagesOnTimer()
   },
 
@@ -115,7 +118,7 @@ export default {
       await this.fetchMessages()
 
       if (!this.gameOver) {
-        setTimeout(() => this.collectMessagesOnTimer(), 1000)
+        setTimeout(() => this.collectMessagesOnTimer(), 5000)
       }
     },
 
