@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "assert": "^2.0.0",
     "autoprefixer": "10.4.2",
     "ipfs-core": "^0.14.1",
     "orbit-db": "^0.28.3",

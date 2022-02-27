@@ -10,6 +10,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
+      assert: 'assert',
       path: 'path-browserify',
       process: 'process/browser',
       stream: 'stream-browserify',
