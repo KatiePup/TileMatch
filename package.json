@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "autoprefixer": "10.4.2",
-    "ipfs": "^0.62.1",
-    "ipfs-http-client": "^56.0.1",
+    "ipfs-core": "^0.14.1",
     "orbit-db": "^0.28.3",
+    "path-browserify": "^1.0.1",
     "postcss": "8.4.7",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
     "tailwindcss": "3.0.23",
+    "util": "^0.12.4",
     "uuid": "^8.3.2",
     "vite": "^2.8.4",
     "vue": "3.2.31"

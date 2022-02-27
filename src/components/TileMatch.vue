@@ -45,7 +45,7 @@ export default {
       console.log('Setup Complete')
       this.collectMessagesOnTimer()
     })
-    
+
   },
   created: function () {
     this.findGame()

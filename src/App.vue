@@ -2,9 +2,9 @@
 import TileMatch from './components/TileMatch.vue'
 
 export default {
-  components: [
+  components: {
     TileMatch
-  ]
+  }
 }
 </script>
 
