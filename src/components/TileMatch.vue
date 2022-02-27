@@ -17,7 +17,7 @@ export default {
       // orbitdb: null,
       db: null,
       lastEntry: null,
-      dbCache: null,
+      dbCache: [],
       gameID: null,
       gameData: null,
       gameFound: false,
@@ -40,6 +40,7 @@ export default {
 
     this.ipfs = setupIpfsClient()
 
+    // Wait for client to be available.
     const client = await this.ipfs
     console.log(client)
 
@@ -78,11 +79,17 @@ export default {
             .map((e) => e.payload.value)
           // If last entry is not the same as cached
           // update full local db cache
+            console.log(lastEntry, this.lastEntry)
           if (lastEntry !== this.lastEntry) {
+            console.log("Database has been changed, updating...")
             this.dbCache = await this.db
               .iterator({ reverse: true, limit: -1 })
               .collect()
               .map((e) => e.payload.value)
+
+            this.lastEntry = this.dbCache[0]
+
+            console.log("db:",this.dbCache)
           }
         }
         // Async and recurs stuff to keep it calling
@@ -102,8 +109,7 @@ export default {
 
       // Send message to orbitdb
       if (this.ipfsdbREADY === true && this.db) {
-        const db = this.db
-        console.log('Sending Message:', message, db)
+        console.log('Sending Message:', message, this.db)
 
         return await this.db.add({ ...message })
       }
