@@ -10,6 +10,10 @@ import { setupIpfsClient } from '../data'
 
 // main()
 export default {
+  setup() {
+    // return { lastEntry: ref(null) }
+  },
+
   data: function () {
     return {
       ipfs: null,
@@ -29,7 +33,7 @@ export default {
       },
       playerN: null,
       turnN: 0,
-      pairsFound: [],
+      pairsFound: null,
       score: null,
     }
   },
@@ -52,74 +56,95 @@ export default {
     //
     console.log('Loading database...')
 
-    this.orbitdb = await OrbitDB.createInstance(client)
-    this.db = await this.orbitdb.eventlog('TileMatch')
+    this.orbitdb = OrbitDB.createInstance(client)
+    this.db = (await this.orbitdb).eventlog('TileMatch')
 
-    // this.findGame()
-    console.log(this.orbitdb, this.db)
+    const { orbitdb, db } = this
+
+    console.log(await orbitdb, await db)
 
     console.log('Setup Complete')
-    this.collectMessagesOnTimer()
-    this.findGame()
+    await this.collectMessagesOnTimer()
   },
 
   mounted() {
     console.log(this.ipfs)
+    setTimeout(() => {
+      this.findGame()
+    }, 2000)
   },
 
   methods: {
-    collectMessagesOnTimer: function () {
-      // Automatically collect messages
-      const timerFunc = () => {
-        const asyncCall = async () => {
-          // Get last entry to db
-          const lastEntry = await this.db
-            .iterator({ reverse: true })
-            .collect()
-            .map((e) => e.payload.value)
-          // If last entry is not the same as cached
-          // update full local db cache
-            console.log(lastEntry, this.lastEntry)
-          if (lastEntry !== this.lastEntry) {
-            console.log("Database has been changed, updating...")
-            this.dbCache = await this.db
-              .iterator({ reverse: true, limit: -1 })
-              .collect()
-              .map((e) => e.payload.value)
+    // Automatically collect messages
+    async fetchMessages() {
+      console.log('Checking for updates...')
 
-            this.lastEntry = this.dbCache[0]
+      const db = await this.db
 
-            console.log("db:",this.dbCache)
-          }
-        }
-        // Async and recurs stuff to keep it calling
-        asyncCall()
-        if (!this.gameOver) {
-          setTimeout(() => {
-            timerFunc()
-          }, 1000)
-        }
-      }
-      timerFunc()
-    },
-    async sendMessage(message) {
-      if (!message) {
+      // Get last entry to db
+      const currentLastEntry = await db
+        .iterator({ reverse: true, limit: 1 })
+        .collect()
+        .find((e) => e.payload.value)
+
+      // If last entry is not the same as cached
+      // update full local db cache
+      if (this.lastEntry?.hash === currentLastEntry?.hash) {
+        console.log('Up to date.')
         return
       }
 
-      // Send message to orbitdb
-      if (this.ipfsdbREADY === true && this.db) {
-        console.log('Sending Message:', message, this.db)
+      console.log('Has updates, fetching messages...')
+      console.log({ last: currentLastEntry })
 
-        return await this.db.add({ ...message })
+      const messages = await db.iterator({ reverse: true, limit: -1 }).collect()
+
+      // Update local cache...
+      this.dbcache = messages.map((e) => e.payload.value)
+      this.lastEntry = messages[0]
+
+      const { lastEntry, dbCache } = this
+
+      console.log({ messages, currentLastEntry, lastEntry, dbCache })
+
+      return messages
+    },
+
+    async collectMessagesOnTimer() {
+      // Async and recurs stuff to keep it calling
+      await this.fetchMessages()
+
+      if (!this.gameOver) {
+        setTimeout(() => this.collectMessagesOnTimer(), 1000)
       }
     },
-    findGame: function () {
+
+    async sendMessage(message) {
+      const { db, ipfsdbREADY } = this
+
+      console.info('Sending message')
+      console.log({ message, db, ipfsdbREADY })
+
+      // Send message to orbitdb
+      if (ipfsdbREADY === true && db) {
+        // const db = await db
+
+        // Deep clone message object to remove any of Vue's proxies.
+        // https://vuejs.org/guide/extras/reactivity-in-depth.html#how-reactivity-works-in-vue
+        const rawMessage = JSON.parse(JSON.stringify(message))
+
+        console.log('Sending Message', { rawMessage, db })
+
+        return (await db).add({ ...rawMessage })
+      }
+    },
+
+    async findGame() {
       console.log('Finding Game')
       // Blank array to cache accepted gameIDs
       let alreadyAccepted = []
       // Loop through each db message
-      this.dbCache?.forEach((message) => {
+      await this.dbCache?.forEach(async (message) => {
         // TODO check if the entry is too old
 
         if (message.moveID === 'request') {
@@ -134,7 +159,7 @@ export default {
             }
             console.log('Found game, sending accept message')
             console.log('GameID', this.gameID)
-            this.hashCheck = this.sendMessage(acceptMessage)
+            this.hashCheck = await this.sendMessage(acceptMessage)
             this.acceptGameCheck()
             return
           }
@@ -142,6 +167,7 @@ export default {
           alreadyAccepted.push(message.gameID)
         }
       })
+
       if (!this.gameFound) {
         this.gameData = this.generateGameData()
         this.gameID = uuidv4()
@@ -150,11 +176,12 @@ export default {
           gameData: this.gameData,
           moveID: 'request',
         }
-        this.hashCheck = this.sendMessage(requestMessage)
+        this.hashCheck = await this.sendMessage(requestMessage)
         this.awaitAccept()
       }
     },
-    acceptGameCheck: function () {
+
+    acceptGameCheck() {
       let keepChecking = true
       const timerFunc = () => {
         this.dbCache.forEach((message) => {
@@ -180,7 +207,8 @@ export default {
         }
       }
     },
-    generateGameData: function (
+
+    generateGameData(
       // Default Size
       size = {
         x: 4,
@@ -214,7 +242,8 @@ export default {
         pairs: pairs,
       }
     },
-    awaitAccept: function () {
+
+    awaitAccept() {
       let keepChecking = true
       const timerFunc = () => {
         this.dbCache.forEach((message) => {
@@ -233,7 +262,8 @@ export default {
         }
       }
     },
-    takeTurn: function () {
+
+    takeTurn() {
       const input = prompt('Please enter your guess in the form/nx1,y1;x2,y2')
       const turn = input.split(';').map((coord) => coord.split(','))
 
@@ -255,7 +285,8 @@ export default {
         this.awaitTurn()
       }
     },
-    awaitTurn: function () {
+
+    awaitTurn() {
       let keepChecking = true
       const timerFunc = () => {
         this.dbCache.forEach((message) => {
@@ -278,7 +309,8 @@ export default {
         }
       }
     },
-    turnCheck: function (turn, playerN) {
+
+    turnCheck(turn, playerN) {
       const turnCheck = this.gameData.pairs.indexOf(turn)
       if (turnCheck !== -1) {
         this.pairsFound[turnCheck] = this.playerN
