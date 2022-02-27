@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import { OrbitDB } from 'orbit-db'
+import OrbitDB from 'orbit-db'
 
 import { v4 as uuidv4 } from 'uuid'
 import { setupIpfsClient } from '../data'
@@ -14,7 +14,7 @@ export default {
     return {
       ipfs: null,
       ipfsdbReady: false,
-      orbitdb: null,
+      // orbitdb: null,
       db: null,
       lastEntry: null,
       dbCache: null,
@@ -33,23 +33,40 @@ export default {
       score: null,
     }
   },
-  mounted: function () {
-    // Setup IPFS and orbitdb
-    console.log('Setting Up IPFS and orbitDB')
+
+  async created() {
+    //
+    console.log('Setting up IPFS network...')
 
     this.ipfs = setupIpfsClient()
-    this.ipfs.on('ready', async () => {
-      this.orbitdb = new OrbitDB(this.ipfs)
-      this.db = await this.orbitdb.eventlog('TileMatch')
-      this.ipfsdbREADY = true
-      console.log('Setup Complete')
-      this.collectMessagesOnTimer()
-    })
 
+    const client = await this.ipfs
+    console.log(client)
+
+    // client.on('ready', () => {
+      this.collectMessagesOnTimer()
+      this.ipfsdbREADY = true
+
+    // })
+
+    //
+    console.log('Loading database...')
+
+    const orbitdb = await OrbitDB.createInstance(this.ipfs)
+    const db = await orbitdb.eventlog('TileMatch')
+
+    // this.findGame()
+    console.log(orbitdb, db)
+
+      console.log('Setup Complete')
   },
-  created: function () {
+
+  mounted() {
+    console.log(this.ipfs)
+
     this.findGame()
   },
+
   collectMessagesOnTimer: function () {
     // Automatically collect messages
     const timerFunc = () => {

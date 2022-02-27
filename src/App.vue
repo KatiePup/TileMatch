@@ -3,13 +3,13 @@ import TileMatch from './components/TileMatch.vue'
 
 export default {
   components: {
-    TileMatch
-  }
+    TileMatch,
+  },
 }
 </script>
 
 <template>
-  <TileMatch/>
+  <TileMatch />
 </template>
 
 <style>
