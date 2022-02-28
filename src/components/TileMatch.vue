@@ -57,7 +57,6 @@ export default {
     //
     const db = await this.db
 
-
     // Set url...
     window.location.hash = db.address.toString()
 
