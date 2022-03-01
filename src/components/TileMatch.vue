@@ -6,7 +6,7 @@
 import OrbitDB from 'orbit-db'
 
 import { v4 as uuidv4 } from 'uuid'
-import { setupIpfsClient, getDatabaseName } from '../data'
+import { getDatabase, getDatabaseNameFromUrl, getIpfsNode } from '../data'
 
 // main()
 export default {
@@ -16,10 +16,10 @@ export default {
 
   data: function () {
     return {
-      ipfs: null,
+      // ipfs: null,
       ipfsdbReady: false,
       // orbitdb: null,
-      db: null,
+      // db: null,
       lastEntry: null,
       dbCache: [],
       gameID: null,
@@ -40,48 +40,40 @@ export default {
 
   async created() {
     //
-    console.log('Setting up IPFS network...', getDatabaseName())
+    console.log('Setting up IPFS network...', getDatabaseNameFromUrl())
 
-    this.ipfs = setupIpfsClient()
-
-    // Wait for client to be available.
-    const client = await this.ipfs
-    this.ipfsdbREADY = true
-
-    //
-    console.log('Loading database...')
-
-    this.orbitdb = OrbitDB.createInstance(client)
-    this.db = (await this.orbitdb).eventlog(getDatabaseName())
-
-    //
-    const db = await this.db
-
-    // Set url...
-    window.location.hash = db.address.toString()
-
-    db.events.on('replicated', () => {
-      console('replicated!')
-      this.fetchMessages()
+    // Trigger when IPFS connection is available.
+    getIpfsNode().then((client) => {
+      this.ipfsdbREADY = true
     })
 
-    console.log('Setup Complete', db)
+    // Wait for the database to load.
+    await getDatabase()
+
+    //
     await this.collectMessagesOnTimer()
   },
 
-  mounted() {
-    console.log(this.ipfs)
+  async mounted() {
+    this.updateBrowserUrl()
+
     setTimeout(() => {
       this.findGame()
     }, 2000)
   },
 
   methods: {
+    async updateBrowserUrl() {
+      const db = await getDatabase()
+
+      window.location.hash = db.address.toString()
+    },
+
     // Automatically collect messages
     async fetchMessages() {
       console.log('Checking for updates...')
 
-      const db = await this.db
+      const db = await getDatabase()
 
       // Get last entry to db
       const currentLastEntry = await db
