@@ -47,18 +47,15 @@ export default {
       this.ipfsdbREADY = true
     })
 
-    // Setup the database...
+    // Wait for the database to load.
     await getDatabase()
 
+    //
     await this.collectMessagesOnTimer()
   },
 
   async mounted() {
-    // Setup the database...
-    const db = await getDatabase()
-
-    // Set url...
-    window.location.hash = db.address.toString()
+    this.updateBrowserUrl()
 
     setTimeout(() => {
       this.findGame()
@@ -66,6 +63,12 @@ export default {
   },
 
   methods: {
+    async updateBrowserUrl() {
+      const db = await getDatabase()
+
+      window.location.hash = db.address.toString()
+    },
+
     // Automatically collect messages
     async fetchMessages() {
       console.log('Checking for updates...')
