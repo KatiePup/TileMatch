@@ -6,7 +6,7 @@
 import OrbitDB from 'orbit-db'
 
 import { v4 as uuidv4 } from 'uuid'
-import { setupIpfsClient, getDatabaseName } from '../data'
+import { getDatabase, getDatabaseNameFromUrl, getIpfsNode } from '../data'
 
 // main()
 export default {
@@ -16,10 +16,10 @@ export default {
 
   data: function () {
     return {
-      ipfs: null,
+      // ipfs: null,
       ipfsdbReady: false,
       // orbitdb: null,
-      db: null,
+      // db: null,
       lastEntry: null,
       dbCache: [],
       gameID: null,
@@ -40,38 +40,26 @@ export default {
 
   async created() {
     //
-    console.log('Setting up IPFS network...', getDatabaseName())
+    console.log('Setting up IPFS network...', getDatabaseNameFromUrl())
 
-    this.ipfs = setupIpfsClient()
+    // Trigger when IPFS connection is available.
+    getIpfsNode().then((client) => {
+      this.ipfsdbREADY = true
+    })
 
-    // Wait for client to be available.
-    const client = await this.ipfs
-    this.ipfsdbREADY = true
+    // Setup the database...
+    await getDatabase()
 
-    //
-    console.log('Loading database...')
+    await this.collectMessagesOnTimer()
+  },
 
-    this.orbitdb = OrbitDB.createInstance(client)
-    this.db = (await this.orbitdb).eventlog(getDatabaseName())
-
-    //
-    const db = await this.db
-
+  async mounted() {
+    // Setup the database...
+    const db = await getDatabase()
 
     // Set url...
     window.location.hash = db.address.toString()
 
-    db.events.on('replicated', () => {
-      console('replicated!')
-      this.fetchMessages()
-    })
-
-    console.log('Setup Complete', db)
-    await this.collectMessagesOnTimer()
-  },
-
-  mounted() {
-    console.log(this.ipfs)
     setTimeout(() => {
       this.findGame()
     }, 2000)
@@ -82,7 +70,7 @@ export default {
     async fetchMessages() {
       console.log('Checking for updates...')
 
-      const db = await this.db
+      const db = await getDatabase()
 
       // Get last entry to db
       const currentLastEntry = await db
